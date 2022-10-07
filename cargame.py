@@ -1,3 +1,4 @@
+from glob import glob
 import pygame, sys
 from pygame.locals import *
 import random
@@ -6,24 +7,36 @@ import time
 
 pygame.init()
 
-SCREENHEIGHT = 600
+TITLE = "Car Runner"
+
 SCREENWIDTH = 400
+SCREENHEIGHT = 600
 
 FPSTICKRATE = 60
 
-SPEED = 5
+SPEEDINCINTERVAL = 0.5
+MAXSPEED = 10
+PLAYERSPEED = 5
+ENEMYSPEED = 5
+SCORE = 0
 
 FPS = pygame.time.Clock()
-
 
 black = pygame.Color(0, 0, 0)
 white = pygame.Color(255, 255, 255)
 grey = pygame.Color(128, 128, 128)
 red = pygame.Color(255, 0, 0)
 
+font = pygame.font.SysFont("Verdana", 60)
+font_small = pygame.font.SysFont("Verdana", 20)
+game_over = font.render("Game Over", True, black)
+
+background = pygame.image.load("AnimatedStreet.png")
+
 DISPLAYSURF = pygame.display.set_mode((SCREENWIDTH,SCREENHEIGHT))
 DISPLAYSURF.fill(white)
-pygame.display.set_caption("Title")
+pygame.display.set_caption(TITLE)
+
 
 
 class Player(pygame.sprite.Sprite):
@@ -35,13 +48,15 @@ class Player(pygame.sprite.Sprite):
     
     def move(self):
         pressed_keys = pygame.key.get_pressed()
-        
         if self.rect.left > 0:
-            if pressed_keys[K_LEFT]:
-                self.rect.move_ip(-5,0)
+            if not pressed_keys[K_RIGHT]:
+                if pressed_keys[K_LEFT]:
+                    self.rect.move_ip(-PLAYERSPEED,0)
+
         if self.rect.right < SCREENWIDTH:
-            if pressed_keys[K_RIGHT]:
-                self.rect.move_ip(5,0)
+            #if not pressed_keys[K_LEFT]:
+                if pressed_keys[K_RIGHT]:
+                    self.rect.move_ip(PLAYERSPEED,0)
 
 class Enemy(pygame.sprite.Sprite):
     def __init__(self):
@@ -51,11 +66,13 @@ class Enemy(pygame.sprite.Sprite):
         self.rect.center = (random.randint(40,SCREENWIDTH - 40), 0)
 
     def move(self):
-        if SPEED > 15:
-            self.rect.move_ip(0,15)
+        global SCORE
+        if ENEMYSPEED > MAXSPEED:
+            self.rect.move_ip(0,MAXSPEED)
         else:
-            self.rect.move_ip(0,SPEED)
-        if self.rect.top > 600:
+            self.rect.move_ip(0,ENEMYSPEED)
+        if self.rect.top > SCREENHEIGHT:
+            SCORE += 1
             self.rect.top = 0
             self.rect.center = (random.randint(30, SCREENWIDTH-30), 0)
 
@@ -75,12 +92,15 @@ pygame.time.set_timer(INC_SPEED, 1000)
 while True:
     for event in pygame.event.get():
         if event.type == INC_SPEED:
-            SPEED += 2
+            ENEMYSPEED += SPEEDINCINTERVAL
         if event.type == QUIT:
             pygame.quit()
             sys.exit()
     
     DISPLAYSURF.fill(white)
+    DISPLAYSURF.blit(background,(0,0))
+    scores = font_small.render(str(SCORE), True, black)
+    DISPLAYSURF.blit(scores, (10,10))
 
     for sprite in all_sprites:
         DISPLAYSURF.blit(sprite.image, sprite.rect)
@@ -88,6 +108,7 @@ while True:
     
     if pygame.sprite.spritecollideany(P1, enemies):
         DISPLAYSURF.fill(red)
+        DISPLAYSURF.blit(game_over, (30,250))
         pygame.display.update()
         for sprite in all_sprites:
             sprite.kill()
